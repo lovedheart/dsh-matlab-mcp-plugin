@@ -1,0 +1,65 @@
+# DSH patch to connect to the MATLAB MCP Server.
+# This patch inserts an MCP client row that spawns the MATLAB MCP Server
+# binary as a stdio child process. The DSH mcp-client plugin then discovers
+# and registers its tools as mcp__matlab__<toolName>.
+#
+# Prerequisites:
+#   1. Install MATLAB R2021a or later and ensure it is on the system PATH
+#   2. Download the MATLAB MCP Server binary from:
+#      https://github.com/matlab/matlab-mcp-server/releases/latest
+#
+# Configuration:
+#   Override any of the config values below by patching this row in your
+#   profile's cordis.patch.yml or via --patch overlay.
+
+- insert:
+    - id: matlab-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        # Unique server namespace — tool names become mcp__matlab__<rawToolName>
+        serverName: matlab
+
+        # Use stdio transport (the MATLAB MCP Server is a local binary)
+        transport: stdio
+
+        # Path to the MATLAB MCP Server binary.
+        # Override via !!js expression to read from environment or config.
+        # Common locations:
+        #   Linux:   /usr/local/bin/matlab-mcp-server  or  ~/Downloads/matlab-mcp-server
+        #   macOS:   ~/Downloads/matlab-mcp-server
+        #   Windows: C:\Users\<user>\Downloads\matlab-mcp-server-windows-x64.exe
+        command: !!js process.env.MATLAB_MCP_SERVER_BINARY || 'matlab-mcp-server'
+
+        # Arguments passed to the MATLAB MCP Server binary.
+        # These are overridden completely when patched — include all needed flags.
+        args:
+          # Run MATLAB headlessly (no desktop GUI)
+          - '--matlab-display-mode=nodesktop'
+          # Auto mode: try existing MATLAB session first, start new one if unavailable
+          - '--matlab-session-mode=auto'
+          # Disable anonymous telemetry
+          - '--disable-telemetry=true'
+          # Log level: debug | info | warn | error
+          - '--log-level=info'
+
+        # Additional environment variables for the child process.
+        # The parent env (minus credentials and DSH_* vars) is inherited automatically.
+        env:
+          # Optional: specify which MATLAB installation to use.
+          # Uncomment and set the path to your MATLAB root (do not include /bin).
+          # MW_MCP_SERVER_MATLAB_ROOT: '/usr/local/MATLAB/R2024b'
+
+          # Optional: set the initial working folder for MATLAB.
+          # MW_MCP_SERVER_INITIAL_WORKING_FOLDER: '/home/user/projects'
+
+        # Working directory for the MATLAB MCP Server process.
+        cwd: !!js process.cwd()
+
+        # MATLAB operations (especially code evaluation and file execution)
+        # can take significant time. The default 120s timeout accommodates
+        # most use cases; increase for long-running simulations.
+        toolCallTimeoutMs: 120000
+
+        # Do not fail the entire plugin if MATLAB is not available at startup.
+        # The tools remain unavailable but the agent can still function.
+        failOnStartupError: false

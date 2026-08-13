@@ -1,0 +1,46 @@
+# 自定义 MATLAB MCP Server 配置示例
+# 
+# 将此文件内容合并到你的 DSH profile 的 cordis.patch.yml 中，
+# 或通过 --patch 参数传入此文件。
+#
+# 用法:
+#   dsh web --patch /path/to/custom-overlay.cordis.yml
+
+- insert:
+    - id: matlab-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: matlab
+        transport: stdio
+        
+        # 修改为你的 MATLAB MCP Server 二进制文件路径
+        command: '/usr/local/bin/matlab-mcp-server'
+        
+        args:
+          # 指定 MATLAB 安装路径（根据你的实际路径修改）
+          - '--matlab-root=/usr/local/MATLAB/R2024b'
+          
+          # 设置 MATLAB 初始工作目录
+          - '--initial-working-folder=/home/user/matlab-projects'
+          
+          # 无头模式运行（不显示 MATLAB 桌面）
+          - '--matlab-display-mode=nodesktop'
+          
+          # 会话模式：auto = 尝试连接已有 MATLAB，失败则新建
+          - '--matlab-session-mode=auto'
+          
+          # 禁用遥测
+          - '--disable-telemetry=true'
+          
+          # 调试日志（生产环境建议改为 info 或 warn）
+          - '--log-level=info'
+        
+        cwd: !!js process.cwd()
+        
+        env: {}
+        
+        # 增加超时时间（MATLAB 操作可能较慢）
+        toolCallTimeoutMs: 180000
+        
+        # 启动失败时不阻止 DSH 运行
+        failOnStartupError: false

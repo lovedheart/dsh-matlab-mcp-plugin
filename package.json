@@ -1,0 +1,56 @@
+{
+  "name": "@lovedheart/dsh-matlab-mcp-plugin",
+  "description": "DSH plugin for MATLAB MCP Server — enables DeepSeek Harness agents to run MATLAB code, execute scripts, analyze MATLAB projects, build and simulate Simulink models",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/",
+    "cordis.patch.yml",
+    "examples/",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lovedheart/dsh-matlab-mcp-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lovedheart/dsh-matlab-mcp-plugin/issues"
+  },
+  "homepage": "https://github.com/lovedheart/dsh-matlab-mcp-plugin#readme",
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "matlab",
+    "mcp",
+    "mcp-client",
+    "simulink",
+    "mathworks"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-mcp-client": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

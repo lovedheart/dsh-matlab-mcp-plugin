@@ -28,7 +28,7 @@
         #   Linux:   /usr/local/bin/matlab-mcp-server  or  ~/Downloads/matlab-mcp-server
         #   macOS:   ~/Downloads/matlab-mcp-server
         #   Windows: C:\Users\<user>\Downloads\matlab-mcp-server-windows-x64.exe
-        command: !!js process.env.MATLAB_MCP_SERVER_BINARY || 'matlab-mcp-server'
+        command: !!js process.env.MATLAB_MCP_SERVER_BINARY || ((process.env.HOME || '/home/lovedheart') + '/.matlab/agentic-toolkits/bin/matlab-mcp-server')
 
         # Arguments passed to the MATLAB MCP Server binary.
         # These are overridden completely when patched — include all needed flags.
@@ -41,6 +41,11 @@
           - '--disable-telemetry=true'
           # Log level: debug | info | warn | error
           - '--log-level=info'
+          # Do not spin up MATLAB on server start (lazy start on first tool call)
+          - '--initialize-matlab-on-startup=false'
+          # MathWorks Simulink Agentic Toolkit extension (adds model_read /
+          # model_edit / model_check / model_test etc.). Missing file is tolerated.
+          - !!js process.env.MATLAB_SIMULINK_TOOLS_FILE || ((process.env.HOME || '/home/lovedheart') + '/.matlab/agentic-toolkits/simulink/tools/tools.json')
 
         # Additional environment variables for the child process.
         # The parent env (minus credentials and DSH_* vars) is inherited automatically.

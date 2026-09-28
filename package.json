@@ -1,19 +1,16 @@
 {
   "name": "@lovedheart/dsh-matlab-mcp-plugin",
-  "description": "DSH plugin for MATLAB MCP Server — enables DeepSeek Harness agents to run MATLAB code, execute scripts, analyze MATLAB projects, build and simulate Simulink models",
+  "description": "DSH plugin bundle for MATLAB MCP Server — connects DeepSeek Harness agents to MATLAB code execution, analysis, and Simulink model workflows",
   "version": "1.0.0",
   "private": false,
   "type": "module",
-  "main": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "files": [
-    "src/",
     "cordis.patch.yml",
-    "examples/",
+    "setup.sh",
     "LICENSE",
     "README.md"
   ],
@@ -39,14 +36,5 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.7.0",
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/schemastery": "^3.18.1"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit"
   }
 }

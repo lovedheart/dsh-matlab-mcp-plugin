@@ -1,91 +1,82 @@
 #!/bin/bash
-# MATLAB MCP Server 安装脚本
-# 
-# 此脚本帮助下载和安装 MATLAB MCP Server 二进制文件。
-# 用法: bash setup.sh
+# 下载并安装 MATLAB MCP Server 独立发布二进制。
+# （若已安装 MathWorks Agentic Toolkits（~/.matlab/agentic-toolkits），
+#   则无需本脚本——插件默认使用其自带二进制。）
+# 用法: bash setup.sh [-y]
 
 set -e
 
-# 检测操作系统和架构
+ASSUME_YES=0
+[ "${1:-}" = "-y" ] && ASSUME_YES=1
+[ "${ASSUME_YES_ENV:-}" = "1" ] && ASSUME_YES=1
+
 OS="$(uname -s)"
 ARCH="$(uname -m)"
+[ "$ARCH" = "amd64" ] && ARCH="x86_64"
+[ "$ARCH" = "aarch64" ] && ARCH="arm64"
 
 echo "=== MATLAB MCP Server 安装脚本 ==="
-echo "操作系统: $OS"
-echo "架构: $ARCH"
+echo "操作系统: $OS  架构: $ARCH"
 
-# 确定下载 URL 和文件名
 case "$OS" in
   Linux*)
-    if [ "$ARCH" = "x86_64" ]; then
-      BINARY_NAME="matlab-mcp-server-linux-amd64"
-    else
-      echo "错误: 不支持的架构 $ARCH"
-      exit 1
-    fi
+    case "$ARCH" in
+      x86_64) BINARY_NAME="matlab-mcp-server-linux-amd64" ;;
+      arm64)  BINARY_NAME="matlab-mcp-server-linux-arm64" ;;
+      *) echo "错误: 不支持的 Linux 架构 $ARCH（支持 x86_64/arm64）" >&2; exit 1 ;;
+    esac
+    EXE=""
     ;;
   Darwin*)
-    if [ "$ARCH" = "arm64" ]; then
-      BINARY_NAME="matlab-mcp-server-macos-arm64"
-    elif [ "$ARCH" = "x86_64" ]; then
-      BINARY_NAME="matlab-mcp-server-macos-x64"
-    else
-      echo "错误: 不支持的架构 $ARCH"
-      exit 1
-    fi
+    case "$ARCH" in
+      arm64)  BINARY_NAME="matlab-mcp-server-macos-arm64" ;;
+      x86_64) BINARY_NAME="matlab-mcp-server-macos-x64" ;;
+      *) echo "错误: 不支持的 macOS 架构 $ARCH" >&2; exit 1 ;;
+    esac
+    EXE=""
     ;;
   MINGW*|CYGWIN*|MSYS*)
     BINARY_NAME="matlab-mcp-server-windows-x64.exe"
+    EXE=".exe"
     ;;
   *)
-    echo "错误: 不支持的操作系统 $OS"
-    exit 1
-    ;;
+    echo "错误: 不支持的操作系统 $OS" >&2; exit 1 ;;
 esac
 
 RELEASE_URL="https://github.com/matlab/matlab-mcp-server/releases/latest/download"
 DOWNLOAD_URL="${RELEASE_URL}/${BINARY_NAME}"
 
-# 安装目标目录
-INSTALL_DIR="${MATLAB_MCP_INSTALL_DIR:-/usr/local/bin}"
-LOCAL_BINARY="${INSTALL_DIR}/matlab-mcp-server"
+INSTALL_DIR="${MATLAB_MCP_INSTALL_DIR:-${HOME}/.local/bin}"
+LOCAL_BINARY="${INSTALL_DIR}/matlab-mcp-server${EXE}"
 
-echo ""
-echo "检测到的二进制文件: $BINARY_NAME"
+command -v curl >/dev/null 2>&1 || { echo "错误: 需要 curl" >&2; exit 1; }
+
 echo "下载地址: $DOWNLOAD_URL"
 echo "安装目标: $LOCAL_BINARY"
-echo ""
 
-# 确认安装
-read -p "是否继续下载并安装？(y/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo "安装已取消。"
-  echo "你可以手动下载: $DOWNLOAD_URL"
-  exit 0
+if [ "$ASSUME_YES" != "1" ]; then
+  REPLY=""
+  read -r -p "是否继续下载并安装？(y/N) " -n 1 || REPLY=""
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "已取消。可手动下载: $DOWNLOAD_URL"
+    exit 0
+  fi
 fi
 
-# 创建临时目录
-TMPDIR=$(mktemp -d)
-trap "rm -rf $TMPDIR" EXIT
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$WORKDIR"' EXIT
 
 echo "下载中..."
-curl -L -o "${TMPDIR}/${BINARY_NAME}" "$DOWNLOAD_URL"
+curl -fL --retry 3 --show-error -o "${WORKDIR}/${BINARY_NAME}" "$DOWNLOAD_URL"
 
-# 移动到安装目录并设置权限
-if [ "$OS" = "Linux" ] || [ "$OS" = "Darwin" ]; then
-  sudo mv "${TMPDIR}/${BINARY_NAME}" "$LOCAL_BINARY"
-  sudo chmod +x "$LOCAL_BINARY"
-else
-  # Windows
-  mkdir -p "$INSTALL_DIR"
-  cp "${TMPDIR}/${BINARY_NAME}" "${LOCAL_BINARY}.exe"
-fi
+mkdir -p "$INSTALL_DIR"
+SUDO=""
+[ -w "$INSTALL_DIR" ] || SUDO="sudo"
+$SUDO mv "${WORKDIR}/${BINARY_NAME}" "$LOCAL_BINARY"
+$SUDO chmod +x "$LOCAL_BINARY"
 
 echo ""
-echo "=== 安装完成 ==="
-echo "MATLAB MCP Server 已安装到: $LOCAL_BINARY"
-echo ""
-echo "下一步:"
-echo "1. 启动 DSH: dsh web --patch /path/to/dsh-matlab-mcp-plugin/cordis.patch.yml"
-echo "2. 或在 ~/.dsh/profiles/web/cordis.patch.yml 中添加 MATLAB MCP 配置"
+echo "=== 安装完成: $LOCAL_BINARY ==="
+echo "若该路径不在 PATH 中，启动前设置: export MATLAB_MCP_SERVER_BINARY=$LOCAL_BINARY"
+echo "加载插件: dsh web --patch /path/to/dsh-matlab-mcp-plugin/cordis.patch.yml"

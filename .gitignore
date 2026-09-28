@@ -1,6 +1,24 @@
 node_modules/
-lib/
+/lib/
 *.tsbuildinfo
 .DS_Store
 *.log
+*.log.*
+logs/
 .codegraph/
+
+# local env / secrets
+.env
+.env.*
+!.env.example
+
+# MATLAB / Simulink artifacts
+slprj/
+*.asv
+*.mat
+*.mex*
+*.slx.autosave
+
+# downloaded MCP server binaries
+matlab-mcp-server
+matlab-mcp-server-*

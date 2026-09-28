@@ -1,6 +1,10 @@
 MIT License
 
-Copyright (c) 2025 dsh-matlab-mcp-plugin contributors
+Copyright (c) 2025-present lovedheart
+
+Third-party components (including the MATLAB MCP Server binaries installed
+via setup.sh and all third-party dependencies) remain subject to their
+respective licenses and are not licensed under the MIT License below.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

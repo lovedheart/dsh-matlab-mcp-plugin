@@ -1,74 +1,52 @@
-# DSH patch to connect to the MATLAB MCP Server.
-# This patch inserts an MCP client row that spawns the MATLAB MCP Server
-# binary as a stdio child process. The DSH mcp-client plugin then discovers
-# and registers its tools as mcp__matlab__<toolName>.
+# DSH patch layer: spawn the MATLAB MCP Server (MathWorks) as a stdio MCP
+# server. The DSH mcp-client plugin registers its tools as mcp__matlab__<tool>.
 #
 # Prerequisites:
-#   1. Install MATLAB R2021a or later and ensure it is on the system PATH
-#   2. Download the MATLAB MCP Server binary from:
-#      https://github.com/matlab/matlab-mcp-server/releases/latest
+#   1. MATLAB R2021a or later installed.
+#   2. MATLAB MCP Server binary — via MathWorks Agentic Toolkits
+#      (~/.matlab/agentic-toolkits/bin/matlab-mcp-server) or a release binary
+#      from https://github.com/matlab/matlab-mcp-server/releases/latest.
+#      Set MATLAB_MCP_SERVER_BINARY when it lives elsewhere.
 #
-# Configuration:
-#   Override any of the config values below by patching this row in your
-#   profile's cordis.patch.yml or via --patch overlay.
+# Override any value by patching the `matlab-mcp` row in your profile's
+# cordis.patch.yml (id-targeted) or via a --patch overlay.
 
 - insert:
     - id: matlab-mcp
       name: '@deepseek-ai/dsh-mcp-client'
       config:
-        # Unique server namespace — tool names become mcp__matlab__<rawToolName>
+        # Server namespace — tool names become mcp__matlab__<rawToolName>
         serverName: matlab
-
-        # Use stdio transport (the MATLAB MCP Server is a local binary)
         transport: stdio
 
-        # Path to the MATLAB MCP Server binary.
-        # Override via !!js expression to read from environment or config.
-        # Common locations:
-        #   Linux:   /usr/local/bin/matlab-mcp-server  or  ~/Downloads/matlab-mcp-server
-        #   macOS:   ~/Downloads/matlab-mcp-server
-        #   Windows: C:\Users\<user>\Downloads\matlab-mcp-server-windows-x64.exe
-        command: !!js process.env.MATLAB_MCP_SERVER_BINARY || ((process.env.HOME || '/home/lovedheart') + '/.matlab/agentic-toolkits/bin/matlab-mcp-server')
+        # env override first, then Agentic Toolkits default, then PATH lookup
+        command: !!js process.env.MATLAB_MCP_SERVER_BINARY || (process.env.HOME && (process.env.HOME + '/.matlab/agentic-toolkits/bin/matlab-mcp-server')) || 'matlab-mcp-server'
 
-        # Arguments passed to the MATLAB MCP Server binary.
-        # These are overridden completely when patched — include all needed flags.
+        # Patching `args` REPLACES the whole list — keep all flags below.
         args:
-          # Run MATLAB headlessly (no desktop GUI)
           - '--matlab-display-mode=nodesktop'
-          # Auto mode: try existing MATLAB session first, start new one if unavailable
           - '--matlab-session-mode=auto'
-          # Disable anonymous telemetry
           - '--disable-telemetry=true'
-          # Log level: debug | info | warn | error
           - '--log-level=info'
-          # Do not spin up MATLAB on server start (lazy start on first tool call)
+          # lazy start: MATLAB spins up on first tool call, not at server start
           - '--initialize-matlab-on-startup=false'
           # MathWorks Simulink Agentic Toolkit extension (adds model_read /
-          # model_edit / model_check / model_test etc.). Missing file is tolerated.
-          # NOTE: the path must follow the --extension-file flag — a bare path is
-          # parsed as a positional arg and silently ignored, leaving only the
-          # 5 base tools registered instead of 14 (verified 2026-09-27).
+          # model_edit / model_check / model_test ...). A missing file is
+          # tolerated. NOTE: the path must follow the --extension-file flag —
+          # a bare path is parsed as a positional arg and silently ignored,
+          # leaving only the 5 base tools instead of 14 (verified 2026-09-27).
           - '--extension-file'
-          - !!js process.env.MATLAB_SIMULINK_TOOLS_FILE || ((process.env.HOME || '/home/lovedheart') + '/.matlab/agentic-toolkits/simulink/tools/tools.json')
+          - !!js process.env.MATLAB_SIMULINK_TOOLS_FILE || (process.env.HOME && (process.env.HOME + '/.matlab/agentic-toolkits/simulink/tools/tools.json')) || 'tools.json'
 
-        # Additional environment variables for the child process.
-        # The parent env (minus credentials and DSH_* vars) is inherited automatically.
-        env:
-          # Optional: specify which MATLAB installation to use.
-          # Uncomment and set the path to your MATLAB root (do not include /bin).
-          # MW_MCP_SERVER_MATLAB_ROOT: '/usr/local/MATLAB/R2024b'
+        # Extra child-process env vars (e.g. MW_MCP_SERVER_MATLAB_ROOT,
+        # MW_MCP_SERVER_INITIAL_WORKING_FOLDER). Parent env is inherited.
+        env: {}
 
-          # Optional: set the initial working folder for MATLAB.
-          # MW_MCP_SERVER_INITIAL_WORKING_FOLDER: '/home/user/projects'
-
-        # Working directory for the MATLAB MCP Server process.
         cwd: !!js process.cwd()
 
-        # MATLAB operations (especially code evaluation and file execution)
-        # can take significant time. The default 120s timeout accommodates
-        # most use cases; increase for long-running simulations.
+        # MATLAB eval / script runs / simulations can be slow; raise for
+        # long-running simulations.
         toolCallTimeoutMs: 120000
 
-        # Do not fail the entire plugin if MATLAB is not available at startup.
-        # The tools remain unavailable but the agent can still function.
+        # MATLAB being unavailable at startup must not break the whole agent.
         failOnStartupError: false

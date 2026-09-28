@@ -77,4 +77,4 @@ DSH Agent → @deepseek-ai/dsh-mcp-client → (stdio) MATLAB MCP Server → MATL
 
 ## 许可
 
-MIT（仅覆盖本包源码；MathWorks 二进制及其依赖受各自许可约束）。
+Apache-2.0（仅覆盖本包内容；MathWorks 二进制及其依赖受各自许可约束）。
